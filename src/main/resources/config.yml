@@ -1,0 +1,115 @@
+# Tournament Plugin Configuration
+# This config allows you to set up teams, kits, and tournament world settings
+
+# Teams Configuration
+# Each team gets a name and a color for armor and chat display
+teams:
+  red:
+	name: "Red Team"
+	color: "RED"
+  blue:
+	name: "Blue Team"
+	color: "BLUE"
+  green:
+	name: "Green Team"
+	color: "GREEN"
+  yellow:
+	name: "Yellow Team"
+	color: "YELLOW"
+
+# Custom Kits Configuration
+# Each kit can be placed in loot chests with a rarity value (0.0 - 1.0)
+# Higher rarity = more common. Rarity determines probability weight
+kits:
+  starter:
+	name: "Starter Kit"
+	rarity: 0.8
+	items:
+	  1:
+		material: "WOODEN_PICKAXE"
+		amount: 1
+	  2:
+		material: "WOODEN_AXE"
+		amount: 1
+	  3:
+		material: "OAK_LOG"
+		amount: 16
+	  4:
+		material: "OAK_PLANKS"
+		amount: 32
+	  5:
+		material: "WHEAT_SEEDS"
+		amount: 32
+
+  combat:
+	name: "Combat Kit"
+	rarity: 0.6
+	items:
+	  1:
+		material: "DIAMOND_SWORD"
+		amount: 1
+	  2:
+		material: "DIAMOND_PICKAXE"
+		amount: 1
+	  3:
+		material: "DIAMOND_AXE"
+		amount: 1
+	  4:
+		material: "STEAK"
+		amount: 32
+
+  building:
+	name: "Building Kit"
+	rarity: 0.5
+	items:
+	  1:
+		material: "OAK_LOG"
+		amount: 64
+	  2:
+		material: "OAK_PLANKS"
+		amount: 64
+	  3:
+		material: "STONE"
+		amount: 64
+	  4:
+		material: "IRON_BLOCK"
+		amount: 16
+
+  utilities:
+	name: "Utilities Kit"
+	rarity: 0.4
+	items:
+	  1:
+		material: "GOLDEN_APPLE"
+		amount: 16
+	  2:
+		material: "ENDER_PEARL"
+		amount: 8
+	  3:
+		material: "LADDER"
+		amount: 32
+	  4:
+		material: "CHEST"
+		amount: 4
+
+# Tournament World Settings
+tournament-world:
+  # Number of loot chests to place around the map
+  chest:
+	count: 25
+
+  # World border size (radius from center)
+  # Actual border = size * 2 (total width)
+  world-border-radius: 300
+
+# Spectator Settings
+spectator:
+  # Allow spectators to see other spectators
+  see-all-spectators: true
+
+# Announcement Settings
+announcements:
+  enable: true
+  team-elimination: true
+  player-death: true
+  chest-found: true

@@ -1,0 +1,28 @@
+name: TournamentPlugin
+version: ${project.version}
+description: A survival tournament plugin with team management and loot kits
+author: Tournament Admin
+main: com.tournament.TournamentPlugin
+
+depend:
+  - Multiverse-Core
+
+softdepend:
+  - Geyser-Spigot
+
+commands:
+  tournament:
+	description: Tournament plugin main command
+	usage: /tournament <start|stop|status>
+	permission: tournament.admin
+	aliases:
+	  - tour
+	  - tourney
+
+permissions:
+  tournament.admin:
+	description: Admin permissions for tournament plugin
+	default: op
+  tournament.join:
+	description: Permission to join tournament
+	default: true
