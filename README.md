@@ -1,13 +1,14 @@
 # Tournament Plugin - Complete Implementation
 
-A full-featured Minecraft survival tournament plugin for Bukkit/Spigot servers with Multiverse Core integration, team management, custom loot kits, and GeyserMC support for Bedrock players.
+A command-based survival tournament plugin for modern Bukkit/Spigot servers. It creates an isolated world, lets every online player choose a team, and continuously adds random loot chests during the game.
 
 ## Features
 
 ### Core Tournament Features
-- ✅ **Team Management**: Configure teams with custom colors for armor and chat display
-- ✅ **Custom Loot Kits**: Define configurable kits with rarity-based spawning in chests
-- ✅ **Team Spawns**: Each team spawns together at random locations within world border
+- ✅ **Team Selection**: `/tournament start` sends the admin and all online players to a sky lobby with one team dye per hotbar slot, beginning at slot 1. Left- or right-click a dye to join that team.
+- ✅ **Team Hat**: Players receive a leather helmet dyed to their selected team's colour.
+- ✅ **Starting Kits**: A kit with `rarity: 1.0` is issued when a player selects their team; it is never used as chest loot.
+- ✅ **Endless Loot**: One chest is safely placed on open ground at a random location each configured interval for the duration of the tournament.
 - ✅ **Elimination System**: Dead players enter spectator mode until their entire team is eliminated
 - ✅ **World Selection**: Eliminated players can leave tournament or stay as spectators
 - ✅ **Auto-Generated Worlds**: `/tournament start` creates new isolated tournament world
@@ -18,7 +19,7 @@ A full-featured Minecraft survival tournament plugin for Bukkit/Spigot servers w
 - Teams with custom colors (RED, BLUE, GREEN, YELLOW, etc.)
 - Multiple kit definitions with items and rarity weights
 - World border radius configuration
-- Loot chest count configuration
+- Endless loot chest spawn interval configuration
 - Customizable announcements
 
 ### Admin Commands
@@ -71,8 +72,7 @@ tournament-plugin/
 
 ### Prerequisites
 - Minecraft Spigot/Bukkit server (1.17+)
-- Multiverse-Core plugin installed
-- Java 11 or higher
+- Java 21 or higher
 - Maven or Gradle (for building)
 - (Optional) GeyserMC + Floodgate for Bedrock support
 
@@ -98,9 +98,7 @@ See `BUILD_INSTRUCTIONS.md` for detailed build instructions.
    - Maven: `target/tournament-plugin-1.0.0.jar`
    - Gradle: `build/libs/TournamentPlugin-1.0.0.jar`
 
-2. Verify Multiverse-Core is also in the `plugins/` directory
-
-3. Restart your server
+2. Restart your server
 
 ### Step 3: Configure the Plugin
 
@@ -120,7 +118,7 @@ teams:
 kits:
   starter:
 	name: "Starter Kit"
-	rarity: 0.8  # 80% chance to spawn
+	rarity: 1.0  # given to every player after team selection
 	items:
 	  1:
 		material: "STONE_PICKAXE"
@@ -136,14 +134,13 @@ kits:
 1. Admin runs `/tournament start`
 2. Plugin automatically:
    - Creates new world (`Tournament_[timestamp]`)
-   - Sets world to Plains biome
+   - Creates a normal survival world
    - Creates world border (300 blocks from spawn by default)
-   - Places loot chests with random kits
-   - Spawns each team at random locations (team members together)
+   - Teleports everyone, including the command issuer, to a sky team-selection lobby
+   - Gives team-selection dyes in hotbar slots starting from slot 1
 
-3. Players join and are auto-assigned to teams based on config
-4. Players spawn at their team's location with team-colored armor
-5. World compass appears in hotbar slot 1 (unavailable until team dies)
+3. Each player left- or right-clicks a dye to select their team
+4. Players spawn at their selected team's location with a team-coloured leather hat and all `rarity: 1.0` kits
 
 ### During Tournament
 
@@ -212,7 +209,7 @@ kits:
 ```
 
 ### tournament-world
-- `chest.count`: Number of loot chests to spawn (default: 25)
+- `chest.spawn-interval-ticks`: Ticks between random chest spawns (default: 1200); chests continue spawning until the tournament stops
 - `world-border-radius`: World border radius in blocks (default: 300)
 
 ## Troubleshooting
