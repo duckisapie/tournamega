@@ -34,6 +34,7 @@ public class TournamentPlugin extends JavaPlugin {
 		Bukkit.getPluginManager().registerEvents(new BlockInteractListener(this, tournamentManager, kitManager), this);
 		Bukkit.getPluginManager().registerEvents(new PlayerDamageListener(this, tournamentManager, teamManager), this);
 		Bukkit.getPluginManager().registerEvents(new CompassClickListener(this, tournamentManager, teamManager), this);
+		Bukkit.getPluginManager().registerEvents(new TeamSelectionListener(tournamentManager, teamManager), this);
 
 		getLogger().info("TournamentPlugin enabled successfully!");
 	}

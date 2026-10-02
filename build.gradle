@@ -17,14 +17,7 @@ repositories {
 
 dependencies {
 	// Spigot API
-	compileOnly 'org.spigotmc:spigot-api:1.20.1-R0.1-SNAPSHOT'
-
-	// Adventure API for color support (Bedrock compatible)
-	compileOnly 'net.kyori:adventure-api:4.14.0'
-	compileOnly 'net.kyori:adventure-platform-bukkit:4.3.0'
-
-	// Multiverse Core
-	compileOnly 'com.onarandombox.multiversecore:Multiverse-Core:4.3.12'
+	compileOnly 'org.spigotmc:spigot-api:1.21.4-R0.1-SNAPSHOT'
 
 	// Lombok (optional)
 	compileOnly 'org.projectlombok:lombok:1.18.30'
@@ -32,17 +25,14 @@ dependencies {
 }
 
 java {
-	sourceCompatibility = JavaVersion.VERSION_11
-	targetCompatibility = JavaVersion.VERSION_11
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
 }
 
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
 }
 
-shadowJar {
-	archiveClassifier.set('')
-	relocate 'net.kyori', 'com.tournament.libs.kyori'
-}
+shadowJar { archiveClassifier.set('') }
 
 build.dependsOn shadowJar

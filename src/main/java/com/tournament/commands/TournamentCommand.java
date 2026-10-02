@@ -54,7 +54,11 @@ public class TournamentCommand implements CommandExecutor {
 		}
 
 		sender.sendMessage(ChatColor.GOLD + "Starting tournament...");
-		tournamentManager.startTournament();
+		if (!(sender instanceof Player)) {
+			sender.sendMessage(ChatColor.RED + "Only a player can start a tournament because the starter joins team selection.");
+			return;
+		}
+		tournamentManager.startTournament((Player) sender);
 	}
 
 	private void handleStop(CommandSender sender) {

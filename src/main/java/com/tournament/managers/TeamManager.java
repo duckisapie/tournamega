@@ -58,11 +58,19 @@ public class TeamManager {
 	}
 
 	public void addPlayerToTeam(UUID playerUUID, String teamId) {
+		removePlayer(playerUUID);
 		Team team = teams.get(teamId);
 		if (team != null) {
 			team.addPlayer(playerUUID, false);
 			playerTeamMap.put(playerUUID, teamId);
 		}
+	}
+
+	public String getTeamIdByDye(DyeColor dyeColor) {
+		for (Map.Entry<String, Team> entry : teams.entrySet()) {
+			if (entry.getValue().getDyeColor() == dyeColor) return entry.getKey();
+		}
+		return null;
 	}
 
 	public String getPlayerTeam(UUID playerUUID) {
