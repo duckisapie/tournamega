@@ -25,10 +25,6 @@ public class TeamSelectionListener implements Listener {
         } catch (IllegalArgumentException ignored) {
             return;
         }
-        // Selection dyes are controls, never normal inventory items that can be used or placed.
-        if (dye != null) {
-            tournamentManager.selectTeam(event.getPlayer(), dye);
-            event.setCancelled(true);
-        }
+        if (dye != null && tournamentManager.selectTeam(event.getPlayer(), dye)) event.setCancelled(true);
     }
 }

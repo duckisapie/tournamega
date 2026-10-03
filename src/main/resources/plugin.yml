@@ -5,9 +5,6 @@ author: Tournament Admin
 main: com.tournament.TournamentPlugin
 api-version: '1.21'
 
-depend:
-  - Multiverse-Core
-
 commands:
   tournament:
     description: Tournament plugin main command
