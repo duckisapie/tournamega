@@ -62,26 +62,39 @@ public class KitManager {
 	}
 
 	public Kit getRandomKit() {
-		if (kits.isEmpty()) {
+		List<Kit> chestKits = new ArrayList<>();
+		for (Kit kit : kits.values()) {
+			// A rarity of 1.0 is reserved for a kit players receive on joining a team.
+			if (kit.getRarity() < 1.0D) chestKits.add(kit);
+		}
+		if (chestKits.isEmpty()) {
 			return null;
 		}
 
-		List<Kit> kitList = new ArrayList<>(kits.values());
 		double totalWeight = 0;
-		for (Kit kit : kitList) {
+		for (Kit kit : chestKits) {
 			totalWeight += kit.getRarity();
 		}
+		if (totalWeight <= 0) return null;
 
 		double random = Math.random() * totalWeight;
 		double current = 0;
-		for (Kit kit : kitList) {
+		for (Kit kit : chestKits) {
 			current += kit.getRarity();
 			if (random <= current) {
 				return kit;
 			}
 		}
 
-		return kitList.get(0);
+		return chestKits.get(0);
+	}
+
+	public List<Kit> getStartingKits() {
+		List<Kit> startingKits = new ArrayList<>();
+		for (Kit kit : kits.values()) {
+			if (kit.getRarity() == 1.0D) startingKits.add(kit);
+		}
+		return startingKits;
 	}
 
 	public List<ItemStack> getKitItems(String kitId) {
