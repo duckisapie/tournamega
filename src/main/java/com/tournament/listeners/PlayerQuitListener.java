@@ -33,6 +33,8 @@ public class PlayerQuitListener implements Listener {
 
 		if (participationManager.isInTournamentWorld(player)) {
 			participationManager.recordCombatLog(player.getUniqueId());
+		if (tournamentManager.isInTournamentWorld(player)) {
+			tournamentManager.recordCombatLog(player.getUniqueId());
 		}
 	}
 }

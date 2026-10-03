@@ -1,6 +1,7 @@
 package com.tournament.listeners;
 
 import com.tournament.managers.TournamentParticipationManager;
+import com.tournament.managers.TournamentManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,11 +18,16 @@ public class SlotOneListener implements Listener {
 
     public SlotOneListener(TournamentParticipationManager participationManager) {
         this.participationManager = participationManager;
+    private final TournamentManager tournamentManager;
+
+    public SlotOneListener(TournamentManager tournamentManager) {
+        this.tournamentManager = tournamentManager;
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player) || !participationManager.isInTournamentWorld(player)) return;
+        if (!(event.getWhoClicked() instanceof Player player) || !tournamentManager.isInTournamentWorld(player)) return;
         if (event.getClickedInventory() instanceof org.bukkit.inventory.PlayerInventory && event.getSlot() == 0
                 || event.getHotbarButton() == 0) event.setCancelled(true);
     }
@@ -29,6 +35,7 @@ public class SlotOneListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player player) || !participationManager.isInTournamentWorld(player)) return;
+        if (!(event.getWhoClicked() instanceof Player player) || !tournamentManager.isInTournamentWorld(player)) return;
         for (int rawSlot : event.getRawSlots()) {
             if (rawSlot == event.getView().getTopInventory().getSize() + 27) {
                 event.setCancelled(true);
@@ -40,12 +47,14 @@ public class SlotOneListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onHeldSlotChange(PlayerItemHeldEvent event) {
         if (!participationManager.isInTournamentWorld(event.getPlayer())) return;
+        if (!tournamentManager.isInTournamentWorld(event.getPlayer())) return;
         if (event.getNewSlot() == 0) event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onDrop(PlayerDropItemEvent event) {
         if (!participationManager.isInTournamentWorld(event.getPlayer())) return;
+        if (!tournamentManager.isInTournamentWorld(event.getPlayer())) return;
         ItemStack item = event.getItemDrop().getItemStack();
         if (event.getPlayer().getInventory().getHeldItemSlot() == 0 || item.getType().name().endsWith("_DYE")) event.setCancelled(true);
     }
@@ -53,6 +62,7 @@ public class SlotOneListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPickup(EntityPickupItemEvent event) {
         if (!(event.getEntity() instanceof Player player) || !participationManager.isInTournamentWorld(player)
+        if (!(event.getEntity() instanceof Player player) || !tournamentManager.isInTournamentWorld(player)
                 || player.getInventory().getItem(0) != null) return;
         event.setCancelled(true);
         ItemStack remaining = event.getItem().getItemStack().clone();

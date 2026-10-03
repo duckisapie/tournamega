@@ -30,5 +30,6 @@ public class TeamSelectionListener implements Listener {
             tournamentManager.selectTeam(event.getPlayer(), dye);
             event.setCancelled(true);
         }
+        if (dye != null && tournamentManager.selectTeam(event.getPlayer(), dye)) event.setCancelled(true);
     }
 }

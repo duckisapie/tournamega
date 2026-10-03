@@ -41,6 +41,15 @@
 			<scope>provided</scope>
 		</dependency>
 
+
+		<!-- Lombok for reducing boilerplate (optional but recommended) -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.30</version>
+			<scope>provided</scope>
+		</dependency>
+
 		<!-- JUnit for testing -->
 		<dependency>
 			<groupId>junit</groupId>

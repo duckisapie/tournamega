@@ -64,6 +64,12 @@ public class TournamentManager {
 
     private void finishStartingTournament(Player starter, String worldName, long durationMillis) {
         World world = Bukkit.getWorld(worldName);
+        if (currentTournament != null) return;
+        currentTournament = new Tournament();
+        currentTournament.setStatus(Tournament.TournamentStatus.STARTING);
+        currentTournament.setWorldBorderSize(plugin.getConfig().getInt("tournament-world.world-border-radius", 300));
+        String worldName = "tournament_" + System.currentTimeMillis();
+        World world = Bukkit.createWorld(new WorldCreator(worldName).environment(World.Environment.NORMAL));
         if (world == null) {
             currentTournament = null;
             starter.sendMessage(ChatColor.RED + "Could not create the tournament world.");
@@ -83,6 +89,8 @@ public class TournamentManager {
 
         // Teleport first. PerWorldInventory changes a player's inventory during this transfer,
         // so the dyes are granted in showTeamSelection's delayed task, afterwards.
+
+        // The command issuer is included even if they were not previously in the world.
         for (Player player : Bukkit.getOnlinePlayers()) showTeamSelection(player);
         broadcastMessage(ChatColor.GOLD + "Tournament started. Select a team using a dye in your hotbar.");
     }
@@ -138,6 +146,9 @@ public class TournamentManager {
         player.getInventory().setArmorContents(null);
         // Leave displayed slot 1 (inventory index 0) empty for the server's world compass.
         int slot = 1;
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(null);
+        int slot = 0; // Minecraft's displayed slot 1 is inventory index 0.
         for (Team team : teamManager.getAllTeams().values()) {
             if (slot >= 9) break;
             ItemStack dye = new ItemStack(Material.valueOf(team.getDyeColor().name() + "_DYE"));
@@ -160,6 +171,10 @@ public class TournamentManager {
             }
         }
         return new Location(world, spawn.getBlockX() + .5D, y + 1, spawn.getBlockZ() + .5D);
+        Location selection = world.getSpawnLocation().clone().add(.5D, 45D, .5D);
+        player.teleport(selection);
+        player.setGameMode(GameMode.ADVENTURE);
+        player.sendMessage(ChatColor.GOLD + "Choose your team with a dye from hotbar slot 1 onward.");
     }
 
     public boolean selectTeam(Player player, DyeColor dyeColor) {
@@ -180,6 +195,10 @@ public class TournamentManager {
         Team.SpawnLocation spawn = team.getSpawnLocation();
         player.teleport(new Location(Bukkit.getWorld(spawn.worldName), spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch));
         player.setFallDistance(0.0F);
+            for (ItemStack item : kit.getItems()) player.getInventory().addItem(item.clone());
+        }
+        Team.SpawnLocation spawn = team.getSpawnLocation();
+        player.teleport(new Location(Bukkit.getWorld(spawn.worldName), spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch));
         player.setGameMode(GameMode.SURVIVAL);
         broadcastMessage(team.getChatColor() + player.getName() + ChatColor.YELLOW + " joined " + team.getChatColor() + team.getName());
         return true;

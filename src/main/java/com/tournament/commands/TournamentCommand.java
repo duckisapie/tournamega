@@ -73,6 +73,7 @@ public class TournamentCommand implements CommandExecutor {
 		}
 
 		sender.sendMessage(ChatColor.GOLD + "Starting tournament..." + (durationMillis > 0 ? " Time limit: " + args[1] : ""));
+		sender.sendMessage(ChatColor.GOLD + "Starting tournament...");
 		if (!(sender instanceof Player)) {
 			sender.sendMessage(ChatColor.RED + "Only a player can start a tournament because the starter joins team selection.");
 			return;
@@ -97,6 +98,7 @@ public class TournamentCommand implements CommandExecutor {
 		} catch (NumberFormatException | ArithmeticException exception) {
 			return null;
 		}
+		tournamentManager.startTournament((Player) sender);
 	}
 
 	private void handleStop(CommandSender sender) {

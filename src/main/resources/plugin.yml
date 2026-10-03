@@ -12,6 +12,10 @@ commands:
   tournament:
     description: Tournament plugin main command
     usage: /tournament <start [numberh|numberd|numberw|numberm]|stop|status>
+commands:
+  tournament:
+    description: Tournament plugin main command
+    usage: /tournament <start|stop|status>
     permission: tournament.admin
     aliases:
       - tour

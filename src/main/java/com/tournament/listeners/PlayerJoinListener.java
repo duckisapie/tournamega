@@ -22,5 +22,10 @@ public class PlayerJoinListener implements Listener {
             return;
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> tournamentManager.showTeamSelection(event.getPlayer()), 1L);
+    public PlayerJoinListener(com.tournament.TournamentPlugin plugin, TournamentManager tournamentManager, TeamManager teamManager) { this.plugin = plugin; this.tournamentManager = tournamentManager; }
+    @EventHandler public void onPlayerJoin(PlayerJoinEvent event) {
+        if (tournamentManager.isTournamentRunning() && tournamentManager.getTeamManager().getPlayerTeam(event.getPlayer().getUniqueId()) == null) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> tournamentManager.showTeamSelection(event.getPlayer()), 1L);
+        }
     }
 }
