@@ -28,7 +28,8 @@ public class PlayerQuitListener implements Listener {
 			return;
 		}
 
-		// Remove player from tournament tracking
-		teamManager.removePlayer(player.getUniqueId());
+		if (tournamentManager.isInTournamentWorld(player)) {
+			tournamentManager.recordCombatLog(player.getUniqueId());
+		}
 	}
 }

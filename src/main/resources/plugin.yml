@@ -5,9 +5,6 @@ author: Tournament Admin
 main: com.tournament.TournamentPlugin
 api-version: '1.21'
 
-softdepend:
-  - Geyser-Spigot
-
 commands:
   tournament:
     description: Tournament plugin main command
