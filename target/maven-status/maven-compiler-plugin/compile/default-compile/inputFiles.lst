@@ -1,11 +1,13 @@
 /workspaces/tournamega/src/main/java/com/tournament/managers/TournamentManager.java
 /workspaces/tournamega/src/main/java/com/tournament/utils/PlayerUtils.java
+/workspaces/tournamega/src/main/java/com/tournament/listeners/SlotOneListener.java
 /workspaces/tournamega/src/main/java/com/tournament/listeners/PlayerJoinListener.java
 /workspaces/tournamega/src/main/java/com/tournament/listeners/TeamSelectionListener.java
 /workspaces/tournamega/src/main/java/com/tournament/model/LootChest.java
 /workspaces/tournamega/src/main/java/com/tournament/utils/ColorUtils.java
 /workspaces/tournamega/src/main/java/com/tournament/commands/TournamentCommand.java
 /workspaces/tournamega/src/main/java/com/tournament/listeners/PlayerDamageListener.java
+/workspaces/tournamega/src/main/java/com/tournament/listeners/TournamentWorldListener.java
 /workspaces/tournamega/src/main/java/com/tournament/managers/KitManager.java
 /workspaces/tournamega/src/main/java/com/tournament/listeners/PlayerDeathListener.java
 /workspaces/tournamega/src/main/java/com/tournament/managers/TeamManager.java
@@ -13,6 +15,7 @@
 /workspaces/tournamega/src/main/java/com/tournament/listeners/CompassClickListener.java
 /workspaces/tournamega/src/main/java/com/tournament/listeners/PlayerQuitListener.java
 /workspaces/tournamega/src/main/java/com/tournament/model/Tournament.java
+/workspaces/tournamega/src/main/java/com/tournament/managers/TournamentParticipationManager.java
 /workspaces/tournamega/src/main/java/com/tournament/model/Kit.java
 /workspaces/tournamega/src/main/java/com/tournament/utils/WorldUtils.java
 /workspaces/tournamega/src/main/java/com/tournament/listeners/BlockInteractListener.java
