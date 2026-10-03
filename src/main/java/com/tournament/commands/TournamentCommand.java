@@ -8,7 +8,12 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class TournamentCommand implements CommandExecutor {
+	private static final Pattern DURATION_PATTERN = Pattern.compile("^(\\d+)([hdwm])$", Pattern.CASE_INSENSITIVE);
 	private TournamentPlugin plugin;
 	private TournamentManager tournamentManager;
 
@@ -33,7 +38,7 @@ public class TournamentCommand implements CommandExecutor {
 
 		switch (action) {
 			case "start":
-				handleStart(sender);
+				handleStart(sender, args);
 				return true;
 			case "stop":
 				handleStop(sender);
@@ -47,16 +52,51 @@ public class TournamentCommand implements CommandExecutor {
 		}
 	}
 
-	private void handleStart(CommandSender sender) {
+	private void handleStart(CommandSender sender, String[] args) {
 		if (tournamentManager.isTournamentRunning()) {
 			sender.sendMessage(ChatColor.RED + "A tournament is already running!");
 			return;
 		}
 
+		if (args.length > 2) {
+			sender.sendMessage(ChatColor.RED + "Usage: /tournament start [numberh|numberd|numberw|numberm]");
+			return;
+		}
+		long durationMillis = 0L;
+		if (args.length == 2) {
+			Long parsedDuration = parseDuration(args[1]);
+			if (parsedDuration == null) {
+				sender.sendMessage(ChatColor.RED + "Invalid duration. Use a positive number followed by h, d, w, or m (for example: 2h).");
+				return;
+			}
+			durationMillis = parsedDuration;
+		}
+
+		sender.sendMessage(ChatColor.GOLD + "Starting tournament..." + (durationMillis > 0 ? " Time limit: " + args[1] : ""));
 		sender.sendMessage(ChatColor.GOLD + "Starting tournament...");
 		if (!(sender instanceof Player)) {
 			sender.sendMessage(ChatColor.RED + "Only a player can start a tournament because the starter joins team selection.");
 			return;
+		}
+		tournamentManager.startTournament((Player) sender, durationMillis);
+	}
+
+	private Long parseDuration(String input) {
+		Matcher matcher = DURATION_PATTERN.matcher(input.toLowerCase(Locale.ROOT));
+		if (!matcher.matches()) return null;
+		try {
+			long amount = Long.parseLong(matcher.group(1));
+			if (amount <= 0) return null;
+			long unitMillis = switch (matcher.group(2).charAt(0)) {
+				case 'h' -> 60L * 60L * 1000L;
+				case 'd' -> 24L * 60L * 60L * 1000L;
+				case 'w' -> 7L * 24L * 60L * 60L * 1000L;
+				case 'm' -> 30L * 24L * 60L * 60L * 1000L;
+				default -> 0L;
+			};
+			return Math.multiplyExact(amount, unitMillis);
+		} catch (NumberFormatException | ArithmeticException exception) {
+			return null;
 		}
 		tournamentManager.startTournament((Player) sender);
 	}
@@ -82,7 +122,7 @@ public class TournamentCommand implements CommandExecutor {
 
 	private void sendHelp(CommandSender sender) {
 		sender.sendMessage(ChatColor.AQUA + "=== Tournament Commands ===");
-		sender.sendMessage(ChatColor.GREEN + "/tournament start" + ChatColor.GRAY + " - Start a new tournament");
+		sender.sendMessage(ChatColor.GREEN + "/tournament start [2h|2d|2w|2m]" + ChatColor.GRAY + " - Start a tournament, optionally with a time limit");
 		sender.sendMessage(ChatColor.GREEN + "/tournament stop" + ChatColor.GRAY + " - Stop the current tournament");
 		sender.sendMessage(ChatColor.GREEN + "/tournament status" + ChatColor.GRAY + " - Check tournament status");
 	}
