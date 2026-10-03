@@ -2,6 +2,7 @@ package com.tournament.listeners;
 
 import com.tournament.TournamentPlugin;
 import com.tournament.managers.TeamManager;
+import com.tournament.managers.TournamentParticipationManager;
 import com.tournament.managers.TournamentManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -13,11 +14,13 @@ public class PlayerQuitListener implements Listener {
 	private TournamentPlugin plugin;
 	private TournamentManager tournamentManager;
 	private TeamManager teamManager;
+	private TournamentParticipationManager participationManager;
 
-	public PlayerQuitListener(TournamentPlugin plugin, TournamentManager tournamentManager, TeamManager teamManager) {
+	public PlayerQuitListener(TournamentPlugin plugin, TournamentManager tournamentManager, TeamManager teamManager, TournamentParticipationManager participationManager) {
 		this.plugin = plugin;
 		this.tournamentManager = tournamentManager;
 		this.teamManager = teamManager;
+		this.participationManager = participationManager;
 	}
 
 	@EventHandler(priority = EventPriority.HIGH)
@@ -28,7 +31,8 @@ public class PlayerQuitListener implements Listener {
 			return;
 		}
 
-		// Remove player from tournament tracking
-		teamManager.removePlayer(player.getUniqueId());
+		if (participationManager.isInTournamentWorld(player)) {
+			participationManager.recordCombatLog(player.getUniqueId());
+		}
 	}
 }

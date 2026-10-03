@@ -1,79 +1,26 @@
 package com.tournament.listeners;
 
-import com.tournament.TournamentPlugin;
 import com.tournament.managers.TeamManager;
+import com.tournament.managers.TournamentParticipationManager;
 import com.tournament.managers.TournamentManager;
-import com.tournament.model.Team;
-import com.tournament.utils.PlayerUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 public class PlayerJoinListener implements Listener {
-	private TournamentPlugin plugin;
-	private TournamentManager tournamentManager;
-	private TeamManager teamManager;
-
-	public PlayerJoinListener(TournamentPlugin plugin, TournamentManager tournamentManager, TeamManager teamManager) {
-		this.plugin = plugin;
-		this.tournamentManager = tournamentManager;
-		this.teamManager = teamManager;
-	}
-
-	@EventHandler(priority = EventPriority.NORMAL)
-	public void onPlayerJoin(PlayerJoinEvent event) {
-		Player player = event.getPlayer();
-
-		if (!tournamentManager.isTournamentRunning()) {
-			return;
-		}
-
-		var tournament = tournamentManager.getCurrentTournament();
-		String worldName = tournament.getWorldName();
-
-		// Assign player to first available team
-		String assignedTeam = null;
-		for (String teamId : teamManager.getAllTeams().keySet()) {
-			assignedTeam = teamId;
-			break;
-		}
-
-		if (assignedTeam == null) {
-			player.sendMessage(ChatColor.RED + "No teams configured!");
-			return;
-		}
-
-		teamManager.addPlayerToTeam(player.getUniqueId(), assignedTeam);
-		Team team = teamManager.getTeam(assignedTeam);
-
-		// Teleport to team spawn location
-		if (team.getSpawnLocation() != null) {
-			Team.SpawnLocation spawn = team.getSpawnLocation();
-			Location spawnLoc = new Location(
-					plugin.getServer().getWorld(spawn.worldName),
-					spawn.x, spawn.y + 1, spawn.z,
-					spawn.yaw, spawn.pitch
-			);
-			player.teleport(spawnLoc);
-		}
-
-		// Apply team armor
-		PlayerUtils.applyTeamArmor(player, team);
-
-		// Give world compass in slot 1
-		PlayerUtils.giveWorldCompass(player);
-
-		// Set game mode to survival
-		player.setGameMode(GameMode.SURVIVAL);
-
-		// Announce player join with team color
-		plugin.getServer().broadcastMessage(
-				ChatColor.RED + "[" + team.getName() + "] " + ChatColor.YELLOW + player.getName() + " has joined the tournament!"
-		);
-	}
+    private final com.tournament.TournamentPlugin plugin;
+    private final TournamentManager tournamentManager;
+    private final TournamentParticipationManager participationManager;
+    public PlayerJoinListener(com.tournament.TournamentPlugin plugin, TournamentManager tournamentManager, TeamManager teamManager, TournamentParticipationManager participationManager) { this.plugin = plugin; this.tournamentManager = tournamentManager; this.participationManager = participationManager; }
+    @EventHandler public void onPlayerJoin(PlayerJoinEvent event) {
+        if (!tournamentManager.isTournamentRunning()) return;
+        long remaining = participationManager.getCombatLogRemainingMillis(event.getPlayer().getUniqueId());
+        if (remaining > 0) {
+            event.getPlayer().kickPlayer(ChatColor.RED + "Combat logging is disabled. Rejoin in " + ((remaining + 999) / 1000) + " seconds.");
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> tournamentManager.showTeamSelection(event.getPlayer()), 1L);
+    }
 }

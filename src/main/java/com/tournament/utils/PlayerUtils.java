@@ -13,19 +13,9 @@ public class PlayerUtils {
 		Color armorColor = team.getArmorColor();
 
 		ItemStack helmet = new ItemStack(Material.LEATHER_HELMET);
-		ItemStack chestplate = new ItemStack(Material.LEATHER_CHESTPLATE);
-		ItemStack leggings = new ItemStack(Material.LEATHER_LEGGINGS);
-		ItemStack boots = new ItemStack(Material.LEATHER_BOOTS);
-
 		helmet = ColorUtils.colorizeLeatherArmor(helmet, armorColor);
-		chestplate = ColorUtils.colorizeLeatherArmor(chestplate, armorColor);
-		leggings = ColorUtils.colorizeLeatherArmor(leggings, armorColor);
-		boots = ColorUtils.colorizeLeatherArmor(boots, armorColor);
 
 		player.getEquipment().setHelmet(helmet);
-		player.getEquipment().setChestplate(chestplate);
-		player.getEquipment().setLeggings(leggings);
-		player.getEquipment().setBoots(boots);
 	}
 
 	public static void giveWorldCompass(Player player) {

@@ -1,250 +1,233 @@
 package com.tournament.managers;
 
 import com.tournament.TournamentPlugin;
+import com.tournament.model.Kit;
 import com.tournament.model.LootChest;
 import com.tournament.model.Team;
 import com.tournament.model.Tournament;
-import com.tournament.model.Kit;
-import com.tournament.utils.ColorUtils;
 import com.tournament.utils.PlayerUtils;
-import com.tournament.utils.WorldUtils;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.Plugin;
 
 import java.util.*;
 
+/** Owns the tournament lifecycle and keeps all Bukkit world operations on the server thread. */
 public class TournamentManager {
-	private TournamentPlugin plugin;
-	private TeamManager teamManager;
-	private KitManager kitManager;
-	private Tournament currentTournament;
-	private Map<LootChest, Kit> lootChests;
-	private List<UUID> onlinePlayers;
+    private final TournamentPlugin plugin;
+    private final TeamManager teamManager;
+    private final KitManager kitManager;
+    private final Map<LootChest, Kit> lootChests = new HashMap<>();
+    private final Random random = new Random();
+    private Tournament currentTournament;
+    private int chestTaskId = -1;
+    private int maxPlayersPerTeam;
 
-	public TournamentManager(TournamentPlugin plugin, TeamManager teamManager, KitManager kitManager) {
-		this.plugin = plugin;
-		this.teamManager = teamManager;
-		this.kitManager = kitManager;
-		this.lootChests = new HashMap<>();
-		this.onlinePlayers = new ArrayList<>();
-	}
+    public TournamentManager(TournamentPlugin plugin, TeamManager teamManager, KitManager kitManager) {
+        this.plugin = plugin;
+        this.teamManager = teamManager;
+        this.kitManager = kitManager;
+    }
 
-	public void startTournament() {
-		if (currentTournament != null && currentTournament.getStatus() == Tournament.TournamentStatus.RUNNING) {
-			plugin.getLogger().warning("Tournament already running!");
-			return;
-		}
+    public void startTournament(Player starter) {
+        if (currentTournament != null) return;
+        Plugin multiverse = Bukkit.getPluginManager().getPlugin("Multiverse-Core");
+        if (multiverse == null || !multiverse.isEnabled()) {
+            starter.sendMessage(ChatColor.RED + "Multiverse-Core must be installed and enabled to start a tournament.");
+            return;
+        }
+        currentTournament = new Tournament();
+        currentTournament.setStatus(Tournament.TournamentStatus.STARTING);
+        currentTournament.setWorldBorderSize(plugin.getConfig().getInt("tournament-world.world-border-radius", 300));
+        int teamCount = teamManager.getAllTeams().size();
+        maxPlayersPerTeam = teamCount == 0 ? 0 : (int) Math.ceil(Bukkit.getOnlinePlayers().size() / (double) teamCount);
+        String worldName = "tournament_" + System.currentTimeMillis();
+        // Delegate world creation to Multiverse so its world configuration and PerWorldInventory
+        // integration are applied before players are moved into the tournament world.
+        boolean commandAccepted = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mv create " + worldName + " normal");
+        if (!commandAccepted) {
+            currentTournament = null;
+            starter.sendMessage(ChatColor.RED + "Multiverse-Core could not create the tournament world.");
+            return;
+        }
+        Bukkit.getScheduler().runTask(plugin, () -> finishStartingTournament(starter, worldName));
+    }
 
-		currentTournament = new Tournament();
-		currentTournament.setStatus(Tournament.TournamentStatus.STARTING);
+    private void finishStartingTournament(Player starter, String worldName) {
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            currentTournament = null;
+            starter.sendMessage(ChatColor.RED + "Could not create the tournament world.");
+            return;
+        }
+        currentTournament.setWorldName(worldName);
+        currentTournament.setStartTime(System.currentTimeMillis());
+        world.setDifficulty(Difficulty.HARD);
+        world.setPVP(true);
+        world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
+        world.getWorldBorder().setCenter(0, 0);
+        world.getWorldBorder().setSize(currentTournament.getWorldBorderSize() * 2.0D);
+        setupTeamSpawns(world);
+        currentTournament.setStatus(Tournament.TournamentStatus.RUNNING);
+        startEndlessChestSpawner();
 
-		// Create the world
-		String worldName = "Tournament_" + System.currentTimeMillis();
-		plugin.getLogger().info("Creating tournament world: " + worldName);
+        // Teleport first. PerWorldInventory changes a player's inventory during this transfer,
+        // so the dyes are granted in showTeamSelection's delayed task, afterwards.
+        for (Player player : Bukkit.getOnlinePlayers()) showTeamSelection(player);
+        broadcastMessage(ChatColor.GOLD + "Tournament started. Select a team using a dye in your hotbar.");
+    }
 
-		Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-			createTournamentWorld(worldName);
+    private void setupTeamSpawns(World world) {
+        Map<String, Team> teams = teamManager.getAllTeams();
+        int index = 0;
+        for (Team team : teams.values()) {
+            double angle = (Math.PI * 2 * index++) / Math.max(1, teams.size());
+            int x = (int) Math.round(Math.cos(angle) * currentTournament.getWorldBorderSize() * .70D);
+            int z = (int) Math.round(Math.sin(angle) * currentTournament.getWorldBorderSize() * .70D);
+            int y = world.getHighestBlockYAt(x, z) + 1;
+            team.setSpawnLocation(new Team.SpawnLocation(x + .5D, y, z + .5D, 0, 0, world.getName()));
+            team.setEliminated(false);
+        }
+    }
 
-			Bukkit.getScheduler().runTask(plugin, () -> {
-				currentTournament.setWorldName(worldName);
-				currentTournament.setStartTime(System.currentTimeMillis());
+    public void showTeamSelection(Player player) {
+        if (!isTournamentRunning()) return;
+        World world = Bukkit.getWorld(currentTournament.getWorldName());
+        if (world == null) return;
+        String existingTeamId = teamManager.getPlayerTeam(player.getUniqueId());
+        if (existingTeamId != null) {
+            Team existingTeam = teamManager.getTeam(existingTeamId);
+            Team.SpawnLocation spawn = existingTeam.getSpawnLocation();
+            player.teleport(new Location(world, spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch));
+            player.setFallDistance(0.0F);
+            player.setGameMode(GameMode.SURVIVAL);
+            return;
+        }
+        Location selection = createSafeSelectionPlatform(world);
+        player.teleport(selection);
+        player.setFallDistance(0.0F);
+        player.setGameMode(GameMode.SURVIVAL);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> giveTeamSelectionItems(player), 2L);
+    }
 
-				// Setup teams and spawns
-				setupTeamSpawns(worldName);
+    private void giveTeamSelectionItems(Player player) {
+        if (!isTournamentRunning() || !player.isOnline()
+                || !player.getWorld().getName().equals(currentTournament.getWorldName())
+                || teamManager.getPlayerTeam(player.getUniqueId()) != null) return;
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(null);
+        // Leave displayed slot 1 (inventory index 0) empty for the server's world compass.
+        int slot = 1;
+        for (Team team : teamManager.getAllTeams().values()) {
+            if (slot >= 9) break;
+            ItemStack dye = new ItemStack(Material.valueOf(team.getDyeColor().name() + "_DYE"));
+            ItemMeta meta = dye.getItemMeta();
+            meta.setDisplayName(team.getChatColor() + team.getName());
+            meta.setLore(Collections.singletonList(ChatColor.GRAY + "Left- or right-click to join this team"));
+            dye.setItemMeta(meta);
+            player.getInventory().setItem(slot++, dye);
+        }
+        player.getInventory().setHeldItemSlot(1);
+        player.sendMessage(ChatColor.GOLD + "Choose your team with a dye from hotbar slot 2 onward. Hotbar slot 1 stays empty.");
+    }
 
-				// Place loot chests
-				placeLootChests(worldName);
+    private Location createSafeSelectionPlatform(World world) {
+        Location spawn = world.getSpawnLocation();
+        int y = Math.max(world.getHighestBlockYAt(spawn) + 20, world.getMinHeight() + 20);
+        for (int x = -3; x <= 3; x++) {
+            for (int z = -3; z <= 3; z++) {
+                world.getBlockAt(spawn.getBlockX() + x, y, spawn.getBlockZ() + z).setType(Material.GLASS);
+            }
+        }
+        return new Location(world, spawn.getBlockX() + .5D, y + 1, spawn.getBlockZ() + .5D);
+    }
 
-				currentTournament.setStatus(Tournament.TournamentStatus.RUNNING);
-				broadcastMessage(ChatColor.GOLD + "Tournament started! World: " + worldName);
-			});
-		});
-	}
+    public boolean selectTeam(Player player, DyeColor dyeColor) {
+        if (!isTournamentRunning()) return false;
+        String teamId = teamManager.getTeamIdByDye(dyeColor);
+        if (teamId == null) return false;
+        Team team = teamManager.getTeam(teamId);
+        if (team.getTotalPlayers() >= maxPlayersPerTeam) {
+            player.sendMessage(ChatColor.RED + "That team is full. Choose another team.");
+            return false;
+        }
+        teamManager.addPlayerToTeam(player.getUniqueId(), teamId);
+        player.getInventory().clear();
+        PlayerUtils.applyTeamArmor(player, team);
+        for (Kit kit : kitManager.getStartingKits()) {
+            for (ItemStack item : kit.getItems()) giveItemOutsideSlotOne(player, item.clone());
+        }
+        Team.SpawnLocation spawn = team.getSpawnLocation();
+        player.teleport(new Location(Bukkit.getWorld(spawn.worldName), spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch));
+        player.setFallDistance(0.0F);
+        player.setGameMode(GameMode.SURVIVAL);
+        broadcastMessage(team.getChatColor() + player.getName() + ChatColor.YELLOW + " joined " + team.getChatColor() + team.getName());
+        return true;
+    }
 
-	private void createTournamentWorld(String worldName) {
-		try {
-			WorldCreator creator = new WorldCreator(worldName);
-			creator.type(WorldType.FLAT);
-			creator.generator("CleanroomGenerator");
+    private void giveItemOutsideSlotOne(Player player, ItemStack item) {
+        for (int slot = 1; slot < player.getInventory().getSize() && item.getAmount() > 0; slot++) {
+            ItemStack current = player.getInventory().getItem(slot);
+            if (current == null || current.getType().isAir()) {
+                player.getInventory().setItem(slot, item);
+                return;
+            }
+            if (current.isSimilar(item) && current.getAmount() < current.getMaxStackSize()) {
+                int added = Math.min(item.getAmount(), current.getMaxStackSize() - current.getAmount());
+                current.setAmount(current.getAmount() + added);
+                item.setAmount(item.getAmount() - added);
+            }
+        }
+        if (item.getAmount() > 0) player.getWorld().dropItemNaturally(player.getLocation(), item);
+    }
 
-			World world = Bukkit.createWorld(creator);
-			if (world != null) {
-				world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
-				world.setDifficulty(Difficulty.HARD);
-				world.setPVP(true);
+    private void startEndlessChestSpawner() {
+        int interval = Math.max(20, plugin.getConfig().getInt("tournament-world.chest.spawn-interval-ticks", 1200));
+        chestTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+            if (isTournamentRunning()) placeRandomChest();
+        }, 20L, interval);
+    }
 
-				WorldBorder border = world.getWorldBorder();
-				border.setCenter(0, 0);
-				border.setSize(currentTournament.getWorldBorderSize() * 2);
+    private void placeRandomChest() {
+        World world = Bukkit.getWorld(currentTournament.getWorldName());
+        Kit kit = kitManager.getRandomKit();
+        if (world == null || kit == null) return;
+        int radius = currentTournament.getWorldBorderSize() - 2;
+        for (int attempt = 0; attempt < 40; attempt++) {
+            int x = random.nextInt(radius * 2 + 1) - radius;
+            int z = random.nextInt(radius * 2 + 1) - radius;
+            int y = world.getHighestBlockYAt(x, z) + 1;
+            Block block = world.getBlockAt(x, y, z);
+            if (!block.getType().isAir() || !block.getRelative(0, 1, 0).getType().isAir() || block.getRelative(0, -1, 0).isPassable()) continue;
+            block.setType(Material.CHEST);
+            org.bukkit.block.Chest chest = (org.bukkit.block.Chest) block.getState();
+            for (ItemStack item : kit.getItems()) chest.getBlockInventory().addItem(item.clone());
+            chest.update();
+            lootChests.put(new LootChest(block.getLocation(), kit), kit);
+            return;
+        }
+    }
 
-				plugin.getLogger().info("Tournament world created: " + worldName);
-			}
-		} catch (Exception e) {
-			plugin.getLogger().severe("Failed to create tournament world: " + e.getMessage());
-			e.printStackTrace();
-		}
-	}
+    public void stopTournament() {
+        if (currentTournament == null) return;
+        if (chestTaskId != -1) Bukkit.getScheduler().cancelTask(chestTaskId);
+        chestTaskId = -1;
+        World world = Bukkit.getWorld(currentTournament.getWorldName());
+        if (world != null) for (Player player : world.getPlayers()) player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
+        lootChests.clear();
+        teamManager.resetTeams();
+        currentTournament = null;
+        broadcastMessage(ChatColor.RED + "Tournament ended.");
+    }
 
-	private void setupTeamSpawns(String worldName) {
-		World world = Bukkit.getWorld(worldName);
-		if (world == null) {
-			plugin.getLogger().severe("World not found: " + worldName);
-			return;
-		}
-
-		Map<String, Team> teams = teamManager.getAllTeams();
-		Random random = new Random();
-		int teamsCount = teams.size();
-
-		int index = 0;
-		for (String teamId : teams.keySet()) {
-			Team team = teams.get(teamId);
-
-			// Generate random spawn location within world border
-			double angle = (index * 360.0) / teamsCount;
-			double distance = currentTournament.getWorldBorderSize() * 0.7;
-			double x = distance * Math.cos(Math.toRadians(angle));
-			double z = distance * Math.sin(Math.toRadians(angle));
-
-			// Find ground level
-			int y = 64;
-			Location spawnLoc = new Location(world, x, y, z);
-
-			Team.SpawnLocation spawn = new Team.SpawnLocation(x, y, z, 0, 0, worldName);
-			team.setSpawnLocation(spawn);
-			team.setEliminated(false);
-
-			plugin.getLogger().info("Set spawn for team " + team.getName() + " at (" + x + ", " + y + ", " + z + ")");
-
-			index++;
-		}
-	}
-
-	private void placeLootChests(String worldName) {
-		World world = Bukkit.getWorld(worldName);
-		if (world == null) return;
-
-		Random random = new Random();
-		int chestCount = plugin.getConfig().getInt("chest.count", 25);
-		int maxAttempts = chestCount * 3;
-		int placed = 0;
-
-		for (int i = 0; i < maxAttempts && placed < chestCount; i++) {
-			int x = random.nextInt(currentTournament.getWorldBorderSize() * 2) - currentTournament.getWorldBorderSize();
-			int z = random.nextInt(currentTournament.getWorldBorderSize() * 2) - currentTournament.getWorldBorderSize();
-			int y = 64;
-
-			Location loc = new Location(world, x, y, z);
-			Block block = loc.getBlock();
-
-			if (block.getType() == Material.AIR) {
-				block.setType(Material.CHEST);
-
-				Kit kit = kitManager.getRandomKit();
-				if (kit != null) {
-					LootChest lootChest = new LootChest(loc, kit);
-					lootChests.put(lootChest, kit);
-
-					// Fill chest with loot
-					org.bukkit.block.Chest chest = (org.bukkit.block.Chest) block.getState();
-					for (ItemStack item : kit.getItems()) {
-						chest.getBlockInventory().addItem(item.clone());
-					}
-					chest.update();
-
-					placed++;
-				}
-			}
-		}
-
-		plugin.getLogger().info("Placed " + placed + " loot chests");
-	}
-
-	public void stopTournament() {
-		if (currentTournament == null) return;
-
-		currentTournament.setStatus(Tournament.TournamentStatus.ENDED);
-
-		// Delete the tournament world
-		if (currentTournament.getWorldName() != null) {
-			World world = Bukkit.getWorld(currentTournament.getWorldName());
-			if (world != null) {
-				for (Player player : world.getPlayers()) {
-					player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
-				}
-			}
-		}
-
-		lootChests.clear();
-		currentTournament = null;
-		teamManager.resetTeams();
-		broadcastMessage(ChatColor.RED + "Tournament ended!");
-	}
-
-	public void handlePlayerDeath(Player player) {
-		if (currentTournament == null || currentTournament.getStatus() != Tournament.TournamentStatus.RUNNING) {
-			return;
-		}
-
-		Team team = teamManager.getTeamByPlayer(player);
-		if (team != null) {
-			teamManager.playerToSpectator(player.getUniqueId());
-			player.setGameMode(GameMode.SPECTATOR);
-
-			// Keep compass in inventory for world selection
-			PlayerUtils.giveWorldCompass(player);
-
-			broadcastMessage(ChatColor.YELLOW + player.getName() + " has been eliminated!");
-
-			if (team.isTeamEliminated()) {
-				broadcastMessage(ChatColor.RED + "Team " + team.getName() + " has been completely eliminated!");
-				team.setEliminated(true);
-
-				// Show spectators the world selection interface
-				for (UUID spectatorUUID : team.getSpectatorPlayers()) {
-					Player spectator = Bukkit.getPlayer(spectatorUUID);
-					if (spectator != null) {
-						showWorldSelectionInterface(spectator, team);
-					}
-				}
-			}
-		}
-	}
-
-	private void showWorldSelectionInterface(Player player, Team team) {
-		// Creates an interface for players to choose world after team elimination
-		// This will be enhanced with proper GUI in next phase if needed
-		broadcastMessage(ChatColor.RED + "Team " + team.getName().toUpperCase() + " is eliminated! You may:"
-				+ ChatColor.YELLOW + " 1) Click compass to change worlds " + ChatColor.GRAY + " or "
-				+ ChatColor.YELLOW + "2) Stay and spectate");
-	}
-
-	public void broadcastMessage(String message) {
-		for (Player player : Bukkit.getOnlinePlayers()) {
-			player.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
-		}
-	}
-
-	public Tournament getCurrentTournament() {
-		return currentTournament;
-	}
-
-	public boolean isTournamentRunning() {
-		return currentTournament != null && currentTournament.getStatus() == Tournament.TournamentStatus.RUNNING;
-	}
-
-	public void registerChestOpen(Location location) {
-		for (LootChest chest : lootChests.keySet()) {
-			if (chest.getLocation().equals(location)) {
-				if (!chest.isOpened()) {
-					chest.setOpened(true);
-					Kit kit = lootChests.get(chest);
-					broadcastMessage(ChatColor.YELLOW + "A chest containing " + ChatColor.AQUA + kit.getName() + ChatColor.YELLOW + " has been opened!");
-				}
-				break;
-			}
-		}
-	}
+    public void handlePlayerDeath(Player player) { teamManager.playerToSpectator(player.getUniqueId()); }
+    public void broadcastMessage(String message) { Bukkit.broadcastMessage(message); }
+    public Tournament getCurrentTournament() { return currentTournament; }
+    public TeamManager getTeamManager() { return teamManager; }
+    public boolean isTournamentRunning() { return currentTournament != null && currentTournament.getStatus() == Tournament.TournamentStatus.RUNNING; }
+    public int getMaxPlayersPerTeam() { return maxPlayersPerTeam; }
+    public void registerChestOpen(Location location) { }
 }
