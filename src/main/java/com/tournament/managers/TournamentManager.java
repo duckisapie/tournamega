@@ -24,6 +24,7 @@ public class TournamentManager {
     private final Random random = new Random();
     private Tournament currentTournament;
     private int chestTaskId = -1;
+    private int durationTaskId = -1;
     private int maxPlayersPerTeam;
 
     public TournamentManager(TournamentPlugin plugin, TeamManager teamManager, KitManager kitManager) {
@@ -33,6 +34,11 @@ public class TournamentManager {
     }
 
     public void startTournament(Player starter) {
+        startTournament(starter, 0L);
+    }
+
+    /** Starts a tournament, optionally ending it automatically after the supplied duration. */
+    public void startTournament(Player starter, long durationMillis) {
         if (currentTournament != null) return;
         Plugin multiverse = Bukkit.getPluginManager().getPlugin("Multiverse-Core");
         if (multiverse == null || !multiverse.isEnabled()) {
@@ -53,10 +59,10 @@ public class TournamentManager {
             starter.sendMessage(ChatColor.RED + "Multiverse-Core could not create the tournament world.");
             return;
         }
-        Bukkit.getScheduler().runTask(plugin, () -> finishStartingTournament(starter, worldName));
+        Bukkit.getScheduler().runTask(plugin, () -> finishStartingTournament(starter, worldName, durationMillis));
     }
 
-    private void finishStartingTournament(Player starter, String worldName) {
+    private void finishStartingTournament(Player starter, String worldName, long durationMillis) {
         World world = Bukkit.getWorld(worldName);
         if (world == null) {
             currentTournament = null;
@@ -73,11 +79,22 @@ public class TournamentManager {
         setupTeamSpawns(world);
         currentTournament.setStatus(Tournament.TournamentStatus.RUNNING);
         startEndlessChestSpawner();
+        if (durationMillis > 0) startDurationTimer(durationMillis);
 
         // Teleport first. PerWorldInventory changes a player's inventory during this transfer,
         // so the dyes are granted in showTeamSelection's delayed task, afterwards.
         for (Player player : Bukkit.getOnlinePlayers()) showTeamSelection(player);
         broadcastMessage(ChatColor.GOLD + "Tournament started. Select a team using a dye in your hotbar.");
+    }
+
+    private void startDurationTimer(long durationMillis) {
+        long delayTicks = Math.max(1L, durationMillis / 50L);
+        durationTaskId = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+            if (isTournamentRunning()) {
+                broadcastMessage(ChatColor.GOLD + "The tournament time limit has been reached.");
+                stopTournament();
+            }
+        }, delayTicks);
     }
 
     private void setupTeamSpawns(World world) {
@@ -215,6 +232,8 @@ public class TournamentManager {
         if (currentTournament == null) return;
         if (chestTaskId != -1) Bukkit.getScheduler().cancelTask(chestTaskId);
         chestTaskId = -1;
+        if (durationTaskId != -1) Bukkit.getScheduler().cancelTask(durationTaskId);
+        durationTaskId = -1;
         World world = Bukkit.getWorld(currentTournament.getWorldName());
         if (world != null) for (Player player : world.getPlayers()) player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
         lootChests.clear();

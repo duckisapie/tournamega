@@ -24,7 +24,7 @@ A command-based survival tournament plugin for modern Bukkit/Spigot servers. It 
 
 ### Admin Commands
 ```
-/tournament start    - Start a new tournament (creates world, spawns teams)
+/tournament start [duration] - Start a tournament; duration is optional (for example, `2h`, `3d`, `1w`, or `1m`)
 /tournament stop     - Stop current tournament and cleanup
 /tournament status   - Check if tournament is running
 ```
@@ -131,7 +131,8 @@ kits:
 
 ### Starting a Tournament
 
-1. Admin runs `/tournament start`
+1. Admin runs `/tournament start`, or sets an automatic end time with `/tournament start 2h`.
+   Supported units are `h` (hours), `d` (days), `w` (weeks), and `m` (30-day months).
 2. Plugin automatically:
    - Creates new world (`Tournament_[timestamp]`)
    - Creates a normal survival world
