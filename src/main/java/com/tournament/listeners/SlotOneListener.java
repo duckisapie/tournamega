@@ -36,14 +36,12 @@ public class SlotOneListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onDrop(PlayerDropItemEvent event) {
         if (!tournamentManager.isInTournamentWorld(event.getPlayer())) return;
-        ItemStack item = event.getItemDrop().getItemStack();
-        if (event.getPlayer().getInventory().getHeldItemSlot() == 0 || item.getType() == org.bukkit.Material.COMPASS) event.setCancelled(true);
+        if (event.getPlayer().getInventory().getHeldItemSlot() == 0) event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onPickup(EntityPickupItemEvent event) {
         if (!(event.getEntity() instanceof Player player) || !tournamentManager.isInTournamentWorld(player)) return;
-        if (player.getInventory().getItem(0) != null) return;
         event.setCancelled(true);
         ItemStack remaining = event.getItem().getItemStack().clone();
         for (int slot = 1; slot < player.getInventory().getSize() && remaining.getAmount() > 0; slot++) {

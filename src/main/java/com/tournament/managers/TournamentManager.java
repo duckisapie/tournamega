@@ -66,6 +66,7 @@ public class TournamentManager {
         currentTournament.setStartTime(System.currentTimeMillis());
         world.setDifficulty(Difficulty.HARD); world.setPVP(true);
         world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
+        world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
         WorldBorder border = world.getWorldBorder(); border.setCenter(0, 0); border.setSize(currentTournament.getWorldBorderSize() * 2.0D);
         setupTeamSpawns(world);
         currentTournament.setStatus(Tournament.TournamentStatus.RUNNING);
