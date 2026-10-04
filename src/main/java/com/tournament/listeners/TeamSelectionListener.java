@@ -16,6 +16,7 @@ public class TeamSelectionListener implements Listener {
     public void onSelect(PlayerInteractEvent event) {
         if (!tournamentManager.isInTournamentWorld(event.getPlayer())) return;
         if (tournamentManager.getTeamManager().getPlayerTeam(event.getPlayer().getUniqueId()) != null) return;
+        if (!tournamentManager.isInSelection(event.getPlayer().getUniqueId())) return;
         Action action = event.getAction();
         if (action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) return;
         ItemStack item = event.getItem();

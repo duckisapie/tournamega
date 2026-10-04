@@ -8,6 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 
 public class PlayerDamageListener implements Listener {
 	private TournamentPlugin plugin;
@@ -37,7 +39,30 @@ public class PlayerDamageListener implements Listener {
 			return;
 		}
 
+		if (tournamentManager.isInSelection(damaged.getUniqueId())) {
+			event.setCancelled(true);
+			return;
+		}
+
 		// Prevent damage within own team would go here if we wanted team-friendly fire control
 		// For now, allow all PvP
+	}
+
+	@EventHandler
+	public void onPlayerDamageGeneral(EntityDamageEvent event) {
+		if (!(event.getEntity() instanceof Player)) {
+			return;
+		}
+
+		Player damaged = (Player) event.getEntity();
+
+		if (!tournamentManager.isTournamentRunning()) {
+			return;
+		}
+
+		if (tournamentManager.isInSelection(damaged.getUniqueId())) {
+			event.setCancelled(true);
+			return;
+		}
 	}
 }

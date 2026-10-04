@@ -9,6 +9,7 @@ import com.tournament.utils.PlayerUtils;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
@@ -19,6 +20,7 @@ public class TournamentManager {
     private final TeamManager teamManager;
     private final KitManager kitManager;
     private final Map<LootChest, Kit> lootChests = new HashMap<>();
+    private final Set<UUID> playersInSelection = new HashSet<>();
     private final Random random = new Random();
     private Tournament currentTournament;
     private int chestTaskId = -1;
@@ -100,6 +102,7 @@ public class TournamentManager {
             }
             player.setFallDistance(0.0F); player.setGameMode(GameMode.SURVIVAL); return;
         }
+        playersInSelection.add(player.getUniqueId());
         player.teleport(createSafeSelectionPlatform(world)); player.setFallDistance(0.0F); player.setGameMode(GameMode.ADVENTURE);
         Bukkit.getScheduler().runTaskLater(plugin, () -> giveTeamSelectionItems(player), 2L);
     }
@@ -130,6 +133,7 @@ public class TournamentManager {
         String teamId = teamManager.getTeamIdByDye(dyeColor); if (teamId == null) return false;
         Team team = teamManager.getTeam(teamId); if (team == null) return false;
         if (team.getTotalPlayers() >= maxPlayersPerTeam) { player.sendMessage(ChatColor.RED + "That team is full. Choose another team."); return false; }
+        playersInSelection.remove(player.getUniqueId());
         teamManager.addPlayerToTeam(player.getUniqueId(), teamId); player.getInventory().clear(); PlayerUtils.applyTeamArmor(player, team);
         for (Kit kit : kitManager.getStartingKits()) for (ItemStack item : kit.getItems()) giveItemOutsideSlotOne(player, item.clone());
         Team.SpawnLocation spawn = team.getSpawnLocation();
@@ -183,6 +187,7 @@ public class TournamentManager {
     public TeamManager getTeamManager() { return teamManager; }
     public boolean isTournamentRunning() { return currentTournament != null && currentTournament.getStatus() == Tournament.TournamentStatus.RUNNING; }
     public boolean isInTournamentWorld(Player player) { return isTournamentRunning() && currentTournament.getWorldName() != null && player.getWorld().getName().equals(currentTournament.getWorldName()); }
+    public boolean isInSelection(UUID playerId) { return playersInSelection.contains(playerId); }
     public int getMaxPlayersPerTeam() { return maxPlayersPerTeam; }
     public void registerChestOpen(Location location) {}
 }
