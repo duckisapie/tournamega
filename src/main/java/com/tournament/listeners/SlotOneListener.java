@@ -18,25 +18,48 @@ public class SlotOneListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player) || !tournamentManager.isInTournamentWorld(player)) return;
-        if ((event.getClickedInventory() instanceof org.bukkit.inventory.PlayerInventory && event.getSlot() == 0) || event.getHotbarButton() == 0) event.setCancelled(true);
+        if ((event.getClickedInventory() instanceof org.bukkit.inventory.PlayerInventory && event.getSlot() == 0) || event.getHotbarButton() == 0) {
+            // Allow spectators to use the compass in slot 0
+            if (player.getGameMode() != org.bukkit.GameMode.SPECTATOR) {
+                event.setCancelled(true);
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player player) || !tournamentManager.isInTournamentWorld(player)) return;
         int topSize = event.getView().getTopInventory().getSize();
-        for (int rawSlot : event.getRawSlots()) if (rawSlot == topSize + 27) { event.setCancelled(true); return; }
+        for (int rawSlot : event.getRawSlots()) {
+            if (rawSlot == topSize + 27) {
+                // Allow spectators to move items in slot 0
+                if (player.getGameMode() != org.bukkit.GameMode.SPECTATOR) {
+                    event.setCancelled(true);
+                }
+                return;
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onHeldSlotChange(PlayerItemHeldEvent event) {
-        if (tournamentManager.isInTournamentWorld(event.getPlayer()) && event.getNewSlot() == 0) event.setCancelled(true);
+        if (tournamentManager.isInTournamentWorld(event.getPlayer()) && event.getNewSlot() == 0) {
+            // Allow spectators to use the compass in slot 0
+            if (event.getPlayer().getGameMode() != org.bukkit.GameMode.SPECTATOR) {
+                event.setCancelled(true);
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onDrop(PlayerDropItemEvent event) {
         if (!tournamentManager.isInTournamentWorld(event.getPlayer())) return;
-        if (event.getPlayer().getInventory().getHeldItemSlot() == 0) event.setCancelled(true);
+        if (event.getPlayer().getInventory().getHeldItemSlot() == 0) {
+            // Allow spectators to drop the compass
+            if (event.getPlayer().getGameMode() != org.bukkit.GameMode.SPECTATOR) {
+                event.setCancelled(true);
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true)

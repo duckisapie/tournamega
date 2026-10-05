@@ -21,6 +21,7 @@ public class TournamentManager {
     private final KitManager kitManager;
     private final Map<LootChest, Kit> lootChests = new HashMap<>();
     private final Set<UUID> playersInSelection = new HashSet<>();
+    private final Map<UUID, Integer> selectionTaskIds = new HashMap<>();
     private final Random random = new Random();
     private Tournament currentTournament;
     private int chestTaskId = -1;
@@ -106,6 +107,23 @@ public class TournamentManager {
         playersInSelection.add(player.getUniqueId());
         player.teleport(createSafeSelectionPlatform(world)); player.setFallDistance(0.0F); player.setGameMode(GameMode.ADVENTURE);
         Bukkit.getScheduler().runTaskLater(plugin, () -> giveTeamSelectionItems(player), 2L);
+        startSelectionTimeout(player);
+    }
+    private void startSelectionTimeout(Player player) {
+        int timeoutSeconds = plugin.getConfig().getInt("tournament-world.team-selection-timeout-seconds", 30);
+        int taskId = Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+            if (isTournamentRunning() && playersInSelection.contains(player.getUniqueId())) {
+                playersInSelection.remove(player.getUniqueId());
+                player.setGameMode(GameMode.SPECTATOR);
+                player.sendMessage(ChatColor.GRAY + "Team selection timed out. You are now in spectator mode. Use the compass to leave.");
+            }
+            selectionTaskIds.remove(player.getUniqueId());
+        }, timeoutSeconds * 20L);
+        selectionTaskIds.put(player.getUniqueId(), taskId);
+    }
+    public void cancelSelectionTimeout(UUID playerId) {
+        Integer taskId = selectionTaskIds.remove(playerId);
+        if (taskId != null) Bukkit.getScheduler().cancelTask(taskId);
     }
     private void giveTeamSelectionItems(Player player) {
         if (!isTournamentRunning() || !player.isOnline() || !player.getWorld().getName().equals(currentTournament.getWorldName())
@@ -135,6 +153,7 @@ public class TournamentManager {
         Team team = teamManager.getTeam(teamId); if (team == null) return false;
         if (team.getTotalPlayers() >= maxPlayersPerTeam) { player.sendMessage(ChatColor.RED + "That team is full. Choose another team."); return false; }
         playersInSelection.remove(player.getUniqueId());
+        cancelSelectionTimeout(player.getUniqueId());
         teamManager.addPlayerToTeam(player.getUniqueId(), teamId); player.getInventory().clear(); PlayerUtils.applyTeamArmor(player, team);
         for (Kit kit : kitManager.getStartingKits()) for (ItemStack item : kit.getItems()) giveItemOutsideSlotOne(player, item.clone());
         Team.SpawnLocation spawn = team.getSpawnLocation();

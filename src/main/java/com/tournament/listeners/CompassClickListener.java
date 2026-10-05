@@ -14,6 +14,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 
 public class CompassClickListener implements Listener {
 	private TournamentPlugin plugin;
@@ -37,9 +38,12 @@ public class CompassClickListener implements Listener {
 		}
 
 		if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-			// Check if player is in spectator mode (team eliminated)
+			// Check if player is in spectator mode (team eliminated or no team selected)
 			if (player.getGameMode() != GameMode.SPECTATOR) {
-				return;
+				// Check if player is in selection mode and hasn't chosen a team yet
+				if (!tournamentManager.isInSelection(player.getUniqueId())) {
+					return;
+				}
 			}
 
 			if (!tournamentManager.isTournamentRunning()) {
@@ -52,6 +56,7 @@ public class CompassClickListener implements Listener {
 
 			// Remove from tournament
 			teamManager.removePlayer(player.getUniqueId());
+			tournamentManager.cancelSelectionTimeout(player.getUniqueId());
 			player.setGameMode(GameMode.SURVIVAL);
 
 			plugin.getServer().broadcastMessage(ChatColor.YELLOW + player.getName() + ChatColor.GRAY + " has left the tournament!");
