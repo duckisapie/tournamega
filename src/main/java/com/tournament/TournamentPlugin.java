@@ -36,6 +36,7 @@ public class TournamentPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new TeamSelectionListener(tournamentManager), this);
         Bukkit.getPluginManager().registerEvents(new SlotOneListener(tournamentManager), this);
         Bukkit.getPluginManager().registerEvents(new TournamentWorldListener(tournamentManager), this);
+        Bukkit.getPluginManager().registerEvents(new DeadPlayerListener(tournamentManager), this);
 
         getLogger().info("TournamentPlugin enabled successfully!");
     }

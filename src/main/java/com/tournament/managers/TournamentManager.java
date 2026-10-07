@@ -263,10 +263,15 @@ public class TournamentManager {
     }
     public void handlePlayerDeath(Player player) {
         teamManager.playerToSpectator(player.getUniqueId());
+        
         player.setGameMode(GameMode.CREATIVE);
         player.setAllowFlight(true);
         player.setFlying(true);
         player.setInvisible(true);
+        
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(null);
+        player.setCanPickupItems(false);
         
         Team team = teamManager.getTeamByPlayer(player);
         String teamName = team != null ? team.getChatColor() + team.getName() + ChatColor.RESET : ChatColor.GRAY + "Unknown";
