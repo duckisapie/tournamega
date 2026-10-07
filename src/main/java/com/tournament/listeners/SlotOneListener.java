@@ -19,8 +19,8 @@ public class SlotOneListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player) || !tournamentManager.isInTournamentWorld(player)) return;
         if ((event.getClickedInventory() instanceof org.bukkit.inventory.PlayerInventory && event.getSlot() == 0) || event.getHotbarButton() == 0) {
-            // Allow spectators to use the compass in slot 0
-            if (player.getGameMode() != org.bukkit.GameMode.SPECTATOR) {
+            // Allow spectators and dead players (creative mode) to use the compass in slot 0
+            if (player.getGameMode() != org.bukkit.GameMode.SPECTATOR && player.getGameMode() != org.bukkit.GameMode.CREATIVE) {
                 event.setCancelled(true);
             }
         }
@@ -32,8 +32,8 @@ public class SlotOneListener implements Listener {
         int topSize = event.getView().getTopInventory().getSize();
         for (int rawSlot : event.getRawSlots()) {
             if (rawSlot == topSize + 27) {
-                // Allow spectators to move items in slot 0
-                if (player.getGameMode() != org.bukkit.GameMode.SPECTATOR) {
+                // Allow spectators and dead players (creative mode) to move items in slot 0
+                if (player.getGameMode() != org.bukkit.GameMode.SPECTATOR && player.getGameMode() != org.bukkit.GameMode.CREATIVE) {
                     event.setCancelled(true);
                 }
                 return;
@@ -44,8 +44,8 @@ public class SlotOneListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onHeldSlotChange(PlayerItemHeldEvent event) {
         if (tournamentManager.isInTournamentWorld(event.getPlayer()) && event.getNewSlot() == 0) {
-            // Allow spectators to use the compass in slot 0
-            if (event.getPlayer().getGameMode() != org.bukkit.GameMode.SPECTATOR) {
+            // Allow spectators and dead players (creative mode) to use the compass in slot 0
+            if (event.getPlayer().getGameMode() != org.bukkit.GameMode.SPECTATOR && event.getPlayer().getGameMode() != org.bukkit.GameMode.CREATIVE) {
                 event.setCancelled(true);
             }
         }
@@ -55,8 +55,8 @@ public class SlotOneListener implements Listener {
     public void onDrop(PlayerDropItemEvent event) {
         if (!tournamentManager.isInTournamentWorld(event.getPlayer())) return;
         if (event.getPlayer().getInventory().getHeldItemSlot() == 0) {
-            // Allow spectators to drop the compass
-            if (event.getPlayer().getGameMode() != org.bukkit.GameMode.SPECTATOR) {
+            // Allow spectators and dead players (creative mode) to drop the compass
+            if (event.getPlayer().getGameMode() != org.bukkit.GameMode.SPECTATOR && event.getPlayer().getGameMode() != org.bukkit.GameMode.CREATIVE) {
                 event.setCancelled(true);
             }
         }

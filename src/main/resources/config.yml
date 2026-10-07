@@ -52,4 +52,6 @@ tournament-world:
   # One randomly positioned chest is added every interval forever while running.
   chest:
     spawn-interval-ticks: 1200
+    spawn-radius: 200
+    min-distance: 50
   world-border-radius: 300
